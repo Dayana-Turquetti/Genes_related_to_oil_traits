@@ -1,0 +1,5 @@
+"0","orthofinder<-read_orthogroups(""/home/dayana/media/dragonstone/dayana/August_2023_analysis/Orthogroups/proteome_legumes/OrthoFinder/Results_Dec13_1/WorkingDirectory/OrthoFinder/Results_Nov13/Orthogroups/Orthogroups.tsv"")
+"
+"2","Warning: cannot open file '/home/dayana/media/dragonstone/dayana/August_2023_analysis/Orthogroups/proteome_legumes/OrthoFinder/Results_Dec13_1/WorkingDirectory/OrthoFinder/Results_Nov13/Orthogroups/Orthogroups.tsv': No such file or directory"
+"2","Error in file(file, ""rt"") : cannot open the connection
+"

@@ -1,0 +1,248 @@
+---
+title: "Homologous families related to oil traits"
+author: "Turquetti-Moraes, Dayana Kelly"
+date: '2024'
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Identification and Classification of homologous families related to oil traits
+
+```{r loading libraries}
+library(readr)
+library(tidyverse)
+library(ggplot2)
+library(doubletrouble)
+```
+
+## Homologous families related to oil traits.
+
+We assembled a comprehensive dataset of soybean genes linked to oil traits from 
+various sources: Aralip (McGlew et al. 2015), SoyCyc: DAG/TAG synthesis and 
+degradation (Brown et al. 2021), and genes known for their involvement in lipid 
+metabolism, obtained from the Mapman database via PLAZA Dicots 5.0 (Van Bel et al. 2022). 
+These lists were supplemented with genes obtained through a systematic manual curation. 
+
+This compilation resulted in a comprehensive collection of 2,176 soybean genes 
+potentially associated with oil traits (Supplementary Table 1). 
+
+The complete collection of homologous gene families were obtained from PLAZA 5.0, 
+allowing the identification of 567 families containing potential oil genes. 
+When considering the presence of homologs within these families, we expanded this 
+set to 7,706 and 4,236 soybean and common bean candidate genes, respectively.
+
+```{r}
+gma_homofam_genes <- read_delim("./gma_homofam_genes", 
+                               delim = "\t", escape_double = FALSE, 
+                               trim_ws = TRUE)
+
+pvu_homofam_genes <- read_delim("./pvu_homofam_genes", 
+                               delim = "\t", escape_double = FALSE, 
+                               trim_ws = TRUE)
+```
+
+##Count genes in homologous families to gma (567 homofam) and pvu (562 homofam)
+
+```{r}
+#gma
+gma_count <- table(gma_homofam_genes$Homofam)
+gma_count <- as.data.frame(gma_count)
+colnames(gma_count) <- c("Homofam", "gma_counts")
+
+#pvu
+pvu_count <- table(pvu_homofam_genes$Homofam)
+pvu_count <- as.data.frame(pvu_count)
+colnames(pvu_count) <- c("Homofam", "pvu_counts")
+
+```
+
+## Join gma and pvu counts to classify shared homologous families as gain, loss or neutral
+
+```{r}
+#join data
+gma_pvu_count <- left_join(gma_count, pvu_count, by="Homofam")
+gma_pvu_count <- gma_pvu_count %>%
+  mutate(diff_gma_pvu = gma_counts - pvu_counts)
+
+#classify homofam
+classified_df <- gma_pvu_count %>%
+  mutate(Fam_class = case_when(
+    diff_gma_pvu < 0 ~ "loss",
+    diff_gma_pvu == 0 ~ "neutral",
+    diff_gma_pvu >= 1 ~ "gain",
+    TRUE ~ NA_character_
+  ))
+```
+
+##Explore some results
+
+How many families were classified as gain, loss, or neutral?"
+```{r}
+fam_class_counts <- table(classified_df$Fam_class)
+df_fam_class_counts <- as.data.frame.table(fam_class_counts, responseName = "Count") %>%
+  rename(Fam_class = Var1, Count = Count)
+
+#plot a pie chart
+ggplot(df_fam_class_counts, aes(x = "", y = Count, fill = Fam_class, label = Count)) +
+  geom_bar(stat = "identity", width = 1) +
+  geom_text(position = position_stack(vjust = 0.5), size = 2.5) + 
+  coord_polar("y", start = 0) +
+  theme_void() +
+  labs(fill = "Fam_class")
+
+```
+##How many genes in each family class?
+```{r}
+classified_df_filted <- na.omit(classified_df)
+
+# Sum gma_counts and pvu_counts for each Fam_class
+genes_per_class <- classified_df_filted %>%
+  group_by(Fam_class) %>%
+  summarise(total_gma_counts = sum(gma_counts, na.rm = TRUE),
+            total_pvu_counts = sum(pvu_counts, na.rm = TRUE))
+
+# Reshape the data
+genes_per_class_long <- genes_per_class %>%
+  pivot_longer(cols = c(total_gma_counts, total_pvu_counts),
+               names_to = "Gene_Type",
+               values_to = "Total_Counts")
+
+# Plot the results
+ggplot(genes_per_class_long, aes(x = Fam_class, y = Total_Counts, fill = Gene_Type)) +
+  geom_bar(stat = "identity", position = "dodge", width = 0.7) +
+  geom_text(aes(label = Total_Counts), position = position_dodge(width = 0.7), vjust = -0.5) +
+  labs(x = "Fam_class", y = "Total Counts", title = "Dodged Barplot of Counts per Fam_class") +
+  scale_fill_manual(values = c("skyblue", "salmon")) +  # Color for gma_counts and pvu_counts respectively
+  ylim(0, 8000) +  # Set y-axis limit
+  theme_minimal()
+```
+##Exploring results of the families classified as "Gain", i.e., families with more 
+genes in soybean (Gma) than in common bean (Pvu).
+
+*Scenario 1 (1:2+): How many genes remained unique in Pvu but duplicated in Gma?
+*Scenario 2 (2:3+): How many genes duplicated in Pvu and then duplicated again in Gma?
+```{r}
+
+gain_fam <- classified_df %>%
+  filter(Fam_class == "gain")
+
+# Scenario 1 (1:2+)
+scn1 <- gain_fam %>%
+  filter(pvu_counts==1, gma_counts>1)
+
+#Scenario 2 (2:3+)
+scn2 <- gain_fam %>%
+  filter(pvu_counts>=2, gma_counts>2)
+
+#Count homologous families in each scenario
+scn_counts <- gain_fam %>%
+  filter((pvu_counts == 1 & gma_counts > 1) | (pvu_counts >= 2 & gma_counts > 2)) %>%
+  count(Scenario = ifelse(pvu_counts == 1 & gma_counts > 1, "scn1(1:2+)", "scn2(2:3+)"))
+
+#Plot a pie chart of homologous gain families
+ggplot(scn_counts, aes(x = "", y = n, fill = Scenario, label = n)) +
+  geom_bar(stat = "identity", width = 1) +
+  geom_text(aes(label = n), position = position_stack(vjust = 0.5), size = 4) +
+  coord_polar("y", start = 0) +
+  theme_void() +
+  labs(fill = "Scenario")
+```
+## Verify ks peaks of gain families in the scenario 1 and scenario 2.
+
+```{r}
+#ks values of all duplicated mode of gma genes
+gma_all_dupmode_ks <- read_delim("./gma_all_dupmode_ks", 
+      delim = "\t", escape_double = FALSE, 
+                               trim_ws = TRUE)
+#remove NA rows
+gma_all_dupmode_ks <- na.omit(gma_all_dupmode_ks)
+```
+
+##Find ks peaks scen1(1:2+)
+```{r}
+#gma genes scen1 (1:2+)
+genes_gain_cen1 <- read_delim("./genes_gain_cen1", 
+                        delim = "\t", escape_double = FALSE, 
+                        trim_ws = TRUE)
+
+ks_scen1 <- subset(gma_all_dupmode_ks, dup1 %in% genes_gain_cen1$genes | dup2 %in% genes_gain_cen1$genes)
+
+ks_peaks_scen1 <- doubletrouble::find_ks_peaks(ks_scen1$Ks, npeaks = 2, max_ks = 1, verbose = TRUE)
+
+#plot ks peaks distribution in scen1
+doubletrouble::plot_ks_peaks(ks_peaks_scen1)
+```
+
+##Find ks peaks scen2(2:3+)
+```{r}
+#gma genes scen2 (2:3+)
+genes_gain_cen2 <- read_delim("./genes_gain_cen2", 
+    delim = "\t", escape_double = FALSE, 
+                        trim_ws = TRUE)
+
+ks_scen2 <- subset(gma_all_dupmode_ks, dup1 %in% genes_gain_cen2$genes | dup2 %in% genes_gain_cen2$genes)
+
+ks_peaks_scen2 <- doubletrouble::find_ks_peaks(ks_scen2$Ks, npeaks = 2, max_ks = 1, verbose = TRUE)
+
+#plot ks peaks distribution in scen1
+doubletrouble::plot_ks_peaks(ks_peaks_scen2)
+
+```
+##Ks peaks are significant? Get numeric vector of Ks values <= 1 
+
+#scenario 1
+```{r}
+#Significant ks peaks to scen1: 1 peak (blue color in SiZer map)
+
+ks_scen1_sizer <- ks_scen1$Ks[ks_scen1$Ks <= 1]
+
+#SiZer map
+feature::SiZer(ks_scen1_sizer)
+```
+
+#scenario 2
+```{r}
+#Significant ks peaks to scen2: 2 peaks (blue color in SiZer map)
+
+ks_scen2_sizer <- ks_scen2$Ks[ks_scen2$Ks <= 1]
+
+#SiZer map
+feature::SiZer(ks_scen2_sizer)
+```
+
+## Density ks plot
+```{r}
+#scen1
+dens_ks_scen1 <- ks_scen1
+dens_ks_scen1$class <- "S1"
+
+#scen2
+dens_ks_scen2 <- ks_scen2
+dens_ks_scen2$class <- "S2"
+
+dens_ks_scen1_and_scen2 <- rbind(dens_ks_scen1, dens_ks_scen2)
+colnames(dens_ks_scen1_and_scen2) <- c("dup1", "dup2", "Ks", "mode")
+dens_ks_scen1_and_scen2_filt <- dens_ks_scen1_and_scen2 %>% filter(Ks <=1)
+
+# Create a ks density plot to scen1 and scen2
+ggplot(dens_ks_scen1_and_scen2_filt, aes(x = Ks, fill = mode)) +
+  geom_density(alpha = 0.5) +
+  scale_fill_manual(values = c("S1" = "blue", "S2" = "yellow")) +  
+  labs(x = "ks", y = "Density", fill = "mode") +
+  theme_minimal()  
+
+```
+## References:
+
+ Almeida-Silva F, Van de Peer Y (2022). _doubletrouble: Identification and classification of duplicated genes_. R package version 1.3.5,
+  <https://github.com/almeidasilvaf/doubletrouble>.
+
+Wickham H, Averick M, Bryan J, Chang W, McGowan LD, François R, Grolemund G, Hayes A, Henry L, Hester J, Kuhn M, Pedersen TL, Miller E, Bache SM, Müller K, Ooms J, Robinson D, Seidel DP, Spinu V, Takahashi K, Vaughan D, Wilke C, Woo K, Yutani H (2019). “Welcome to the tidyverse.” Journal of Open Source Software, 4(43), 1686. doi:10.21105/joss.01686.
+
+Wickham H, Hester J, Bryan J (2024). readr: Read Rectangular Text Data. R package version 2.1.5, https://github.com/tidyverse/readr, https://readr.tidyverse.org.
+
+Wickham H (2016). ggplot2: Elegant Graphics for Data Analysis. Springer-Verlag New York. ISBN 978-3-319-24277-4, https://ggplot2.tidyverse.org.
+

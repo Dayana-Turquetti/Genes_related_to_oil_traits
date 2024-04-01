@@ -1,0 +1,143 @@
+---
+title: "Orthofinder and CAFE analyses"
+author: "Turquetti-Moraes, Dayana Kelly"
+date: '2024'
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Loading libraries
+
+```{r}
+library(readr)
+library(cogeqc)
+library(tidyverse)
+library(ape)
+```
+
+## Orthofinder analysis to 30 legume species
+
+```{python}
+
+#python orthofinder2.5.2/orthofinder.py -t 24 -a 24 -S diamond_ultra_sens -M msa -T iqtree -f ./proteome_legumes/
+
+```
+
+## Exploring orthofinder results with Cogeqc package
+
+Almeida-Silva F, Van de Peer Y (2022). _cogeqc: Systematic quality
+#>   checks on comparative genomics analyses_. R package version 1.3.1,
+#>   <https://github.com/almeidasilvaf/cogeqc>.
+
+```{r Orthogroups}
+
+#orthogroups<-read_orthogroups("/proteome_legumes/OrthoFinder/Results_Nov13/Orthogroups/Orthogroups.tsv")
+
+```
+
+##Read Statistics
+
+```{r}
+
+#ortho_stats <- read_orthofinder_stats('/proteome_legumes/OrthoFinder/Results_Nov13/Comparative_Genomics_Statistics/')
+
+```
+
+##Plot results
+
+```{r Tree}
+
+#tree_ortho<-treeio::read.tree("/proteome_legumes/OrthoFinder/Results_Nov13/Species_Tree/ SpeciesTree_rooted_node_labels.txt")
+
+plot_species_tree(tree_ortho)
+```
+
+```{r Plot orthofinder statistics}
+
+plot_orthofinder_stats(
+  tree_ortho, 
+  xlim = c(-0.04, 0.65),
+  stats_list = ortho_stats
+)
+
+```
+
+```{r Plot orthogroups overlaping}
+
+plot_og_overlap(ortho_stats)
+
+```
+
+## CAFE analysis
+Software for Computational Analysis of gene Family Evolution
+Fábio K Mendes, Dan Vanderpool, Ben Fulton, Matthew W Hahn, CAFE 5 models variation in evolutionary rates among gene families, Bioinformatics, 2020;, btaa1022, https://doi.org/10.1093/bioinformatics/btaa1022
+
+#input data
+
+```{r gene counts to 30 legume species}
+
+#ogs_gene_count_to_cafe <- read_delim("/CAFE5/CAFE_input/Orthogroups.GeneCount.CAFE.tsv", 
+    # delim = "\t", escape_double = FALSE, 
+    # trim_ws = TRUE)
+
+```
+
+```{python - ultrametric tree}
+
+# r parameter was inferred from http://www.timetree.org/
+
+#python /orthofinder2.5.2/tools/make_ultrametric.py -r 68 /proteome_legumes/OrthoFinder/Results_Nov13/Species_Tree/SpeciesTree_rooted.txt
+
+```
+
+```{r}
+ultrametric_tree <- read.tree("/CAFE5/CAFE_input/SpeciesTree_rooted.txt.ultrametric.tre")
+```
+
+#Filtering large orthogroups
+
+```{python}
+#python /CAFE5/docs/tutorial/clade_and_size_filter.py -i ogs_gene_count_to_cafe -o filtered_ogs_gene_count_to_cafe -s 2> filtered.log
+
+```
+
+## Filtered orthogroup counts
+
+```{r}
+
+#filtered_ogs_gene_count_to_cafe <- read_delim("/CAFE5/CAFE_input/filtered_ogs_gene_count_to_cafe", 
+    #delim = "\t", escape_double = FALSE, 
+    #trim_ws = TRUE)
+```
+
+##Run CAFE5
+
+```{bash}
+
+for run in {1..51}; do 
+cafe5 -i filtered_ogs_gene_count_to_cafe -t ultrametric_tree -k 3 -o run_$run; done
+```
+
+## CAFE output
+
+```{r}
+
+# gamma_family_results_signif <- read_delim("/CAFE5/Output_CAFE_k3/run_4/Gamma_family_results_signif.txt", 
+#     delim = "\t", escape_double = FALSE, 
+#     trim_ws = TRUE)
+
+```
+
+##Plot the results
+We used cafeplotter, available at: https://github.com/moshi4/CafePlotter
+
+```{python}
+
+#cafeplotter -i ./run_4/ -o Plots_cafe_run4/ --format pdf
+
+```
+
+

@@ -1,0 +1,97 @@
+---
+title: "Duplicated gene modes, kaks calcs and ks peaks"
+author: "Turquetti-Moraes, Dayana Kelly"
+date: '2024'
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## The analyses conducted here were based on the DupGenFinder tool: 
+
+Qiao X, Li Q, Yin H, Qi K, Li L, Wang R, Zhang S, Paterson AH: Gene duplication and evolution in recurring polyploidization–diploidization cycles in plants. Genome Biology 2019, 20:38.
+Available at https://github.com/qiao-xin/DupGen_finder
+
+
+```{r input files in data directory}
+
+#The files used here are from PLAZA 5.0 (Glycine max Wm82.v4) and Phytozome V12 (Phaseolus vulgaris V2.1). Diammond was used to alignment.
+
+#Protein sequences (.fasta)
+#Alignment results (.blast)
+
+#Gene location information (.gff)
+```
+
+#Alignment with Diammond
+```{bash}
+
+# reference database
+diamond makedb --in gma.fasta -d gma
+diamond makedb --in pvu.fasta -d pvu
+
+# Align protein query sequences against the reference database
+diamond blastp -d gma -q gma.fasta -o gma.blast -p 20 --sensitive --max-target-seqs 5 --evalue 1e-10 --quiet
+
+#Align protein query sequences between soybean and common bean
+diamond blastp -d pvu -q gma.fasta -o gma_pvu.blast -p 20 --sensitive --max-target-seqs 5 --evalue 1e-10 --quiet
+
+```
+
+# Identify different modes of duplicated gene pairs
+
+```{bash}
+DupGen_finder.pl -i data -t gma -c pvu -o results
+
+#results directory:
+## Duplicated gene pairs
+## Singletons
+## gma.pairs.stats
+## collynearity files
+```
+
+## Ka ks calcs
+Available at https://github.com/qiao-xin/Scripts_for_GB/tree/master/calculate_Ka_Ks_pipeline
+
+```{bash}
+#Calc kaks to each pairs (*) from DupGenFinder:
+
+perl calculate_Ka_Ks_pipe.pl -d data/gma.cds -g data/gma.*.pairs -o result/gma.*.kaks
+#result: all_dup_modes_gma_kaks
+```
+
+## Identify ks peaks using doubletrouble package
+
+Almeida-Silva F, Van de Peer Y. 2022. “Identification and Classification of Duplicated Genes.” 2022. https://almeidasilvaf.github.io/doubletrouble/.
+
+```{r}
+library(tidyverse)
+library(doubletrouble)
+```
+
+# ks data
+
+```{r}
+
+all_dupmode_ks <- all_dupmodes_gma_kaks %>% select(`Duplicate 1`, `Duplicate 2`, Ks)
+colnames(all_dupmode_ks) <- c("dup1", "dup2", "ks")
+
+# Plot distribution
+plot(all_dupmode_ks)
+
+```
+
+##Find ks peaks
+
+```{r}
+peaks <- find_ks_peaks(all_dupmode_ks$Ks, npeaks = 2, verbose = TRUE)
+names(peaks)
+str(peaks)
+
+# Visualize Ks distribution
+plot_ks_peaks(peaks)
+```
+
+

@@ -1,0 +1,40 @@
+---
+title: "Expression data"
+author: "Turquetti-Moraes, Dayana Kelly"
+date: '2024'
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Loading libraries 
+
+```{r}
+library(BioNERO)
+library(tidyverse)
+library(pheatmap)
+library(RColorBrewer)
+```
+
+## Define functions
+
+```{r}
+select_sample <- function(x){
+  dplyr::select(Atlas_tpm,all_of(x))
+}
+
+median_calc <- function (x) {
+  apply(x, 1, median, na.rm=TRUE)
+}
+
+# Define the code block as a function
+process_sample <- function(sample_name) {
+  dt_sample <- select_sample(get(sample_name))
+  dt_sample$Median_Sample <- median_calc(dt_sample)
+  dt_sample %>% select(Median_Sample)
+}
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.

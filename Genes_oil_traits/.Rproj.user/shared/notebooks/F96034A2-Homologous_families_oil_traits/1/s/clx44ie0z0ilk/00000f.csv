@@ -1,0 +1,5 @@
+"0","gma_homofam_bait <- read_delim(""/home/dayana/dragonstone/August_2023_analysis/SEPT EMBER_pos_Quali/Oil_homofam/draft_table1_gma_homofam.tsv"", "
+"0","                               delim = ""\t"", escape_double = FALSE, "
+"0","                               trim_ws = TRUE)"
+"2","Error: '/home/dayana/dragonstone/August_2023_analysis/SEPT EMBER_pos_Quali/Oil_homofam/draft_table1_gma_homofam.tsv' does not exist.
+"

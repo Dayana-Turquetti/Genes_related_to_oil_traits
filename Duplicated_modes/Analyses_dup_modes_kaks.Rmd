@@ -64,7 +64,7 @@ perl calculate_Ka_Ks_pipe.pl -d data/gma.cds -g data/gma.*.pairs -o result/gma.*
 
 ## Identify ks peaks using doubletrouble package
 
-Almeida-Silva F, Van de Peer Y. 2022. “Identification and Classification of Duplicated Genes.” 2022. https://almeidasilvaf.github.io/doubletrouble/.
+Almeida-Silva F. and Van de Peer Y. 2024. “doubletrouble: an R/Bioconductor package for the identification, classification, and analysis of gene and genome duplications.” 2024. https://doi.org/10.1101/2024.02.27.582236
 
 ```{r}
 library(tidyverse)

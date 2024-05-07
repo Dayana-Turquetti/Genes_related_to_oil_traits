@@ -4,6 +4,7 @@ This repository contains the code and primary data used for the analyses publish
 
 **Multiomic analysis of genes related to oil traits in legumes provide insights into lipid metabolism and oil richness in soybean**
 _Authors: Dayana K. Turquetti-Moraes, C.B. Cardoso-Silva, Fabricio Almeida-Silva, Thiago M. Venancio_
+https://doi.org/10.1101/2024.05.02.592228
 
 ## **Directories:**
 
